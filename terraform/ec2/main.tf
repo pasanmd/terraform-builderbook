@@ -50,3 +50,9 @@ resource "aws_internet_gateway" "mybuilderbook-igw" {
     }
 
 }
+
+
+resource "aws_route_table_association" "a-rtb-subnet" {
+    subnet_id = aws_subnet.mybuilderbook-subnet-1.id
+    route_table_id = aws_route_table.mybuilderbook-route-table.id
+}
