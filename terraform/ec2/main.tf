@@ -7,6 +7,7 @@ variable cidr_blocks {}
 variable subnet_idr_blocks {}
 variable avail_zone {}
 variable env_prefix {}
+variable developer_ip_address_range {}
 
 #create the vpc
 
@@ -55,4 +56,37 @@ resource "aws_internet_gateway" "mybuilderbook-igw" {
 resource "aws_route_table_association" "a-rtb-subnet" {
     subnet_id = aws_subnet.mybuilderbook-subnet-1.id
     route_table_id = aws_route_table.mybuilderbook-route-table.id
+}
+
+
+resource "aws_security_group" "mybuilderbook-sg" {
+  name = "mybuilderbook-sg"
+  vpc_id = aws_vpc.mybuilderbook-vpc.id
+
+  ingress {
+      from_port = 22
+      to_port = 22
+      protocol = "tcp"
+      cid_block = [var.developer_ip_address_range]
+  }
+
+  ingress {
+      from_port = 3000
+      to_port = 3000
+      protocol = "tcp"
+      cid_block = ["0.0.0.0/0"]
+  }
+
+  egress  {
+
+      from_port = 0
+      to_port = 0
+      protocol = "-1"
+      cid_block = ["0.0.0.0/0"]
+      prefix_list_ids = []
+  }
+
+   tags = {
+      Name: "${var.env_prefix}-sg"
+    }
 }
