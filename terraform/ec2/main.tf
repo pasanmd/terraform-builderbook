@@ -23,7 +23,7 @@ resource "aws_subnet" "mybuilderbook-subnet-1" {
     vpc_id = aws_vpc.mybuilderbook-vpc.id
     cidr_blocks = var.subnet_cidr_block
     availability_zone = var.avail_zone
-    tag = {
+    tags = {
         Name: "${var.env_prefix}-subnet-1}"
     }
 }
@@ -90,3 +90,32 @@ resource "aws_security_group" "mybuilderbook-sg" {
       Name: "${var.env_prefix}-sg"
     }
 }
+
+data "aws_ami "latest-amazon-linux-image" {
+   most_recent = true
+   owners = ["amazon"i]
+    filter {
+      name = "name"
+      values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+    }
+    filter {
+      name = "virtualization-type"
+      values = ["hvm"]
+    }
+}
+
+
+resource "aws_instance" "mybuilderbook-server" {
+    ami =  data.aws_ami.latest-amazon-linux-image.id
+    instacne_type = var.instance_type
+
+    subnet_id = aws_subnet.mybuilderbook-subnet-1.id
+    vpc_secuirty_group_ids = [aws_security_group.mybuilderbook-sg.id]
+    availbility_zone  = var.avail_zone
+
+    associate_public_ip_address = true
+    key_name= "server-key-pair"
+}
+
+
+
