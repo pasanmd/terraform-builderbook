@@ -4,8 +4,7 @@ provider "aws" {
 # create an instance
 
 variable cidr_blocks {}
-variable vpc_cidr_block {}
-variable subnet_cidr_block {}
+variable subnet_idr_blocks {}
 variable avail_zone {}
 variable env_prefix {}
 variable developer_ip_address_range {}
@@ -13,10 +12,6 @@ variable my_ip {}
 variable instance_type {}
 variable public_key_location {}
 variable certificate_arn {}
-variable mybuilerbook_server {}
-variable aws_route53_zone {}
-variable mybuilderbook_zone {}
-variable route53_hosted_zone_name {}
 
 
 #create the vpc
@@ -31,7 +26,7 @@ resource "aws_vpc" "mybuilderbook-vpc" {
 #create the subnet
 resource "aws_subnet" "mybuilderbook-subnet-1" {
     vpc_id = aws_vpc.mybuilderbook-vpc.id
-    cidr_block = var.subnet_cidr_block
+    cidr_blocks = var.subnet_cidr_block
     availability_zone = var.avail_zone
     tags = {
         Name: "${var.env_prefix}-subnet-1}"
@@ -43,8 +38,8 @@ resource "aws_route_table" "mybuilderbook-route-table"  {
    vpc_id =  aws_vpc.mybuilderbook-vpc.id
 
    route  {
-       cidr_block = "0.0.0.0/0"
-       gateway_id =  aws_internet_gateway.mybuilderbook-igw.id
+       cidr_blocks = "0.0.0.0/0"
+       gateway_id =  xxx
     }
 
    tags = {
@@ -105,7 +100,7 @@ resource "aws_alb" "mybuilderbook-alb" {
   name            = "mybuilderbook-alb"
   security_groups = ["${aws_security_group.mybuilderbook-sg.id}"]
   subnets         = ["${aws_subnet.mybuilderbook-subnet-1.id}"]
-  tags = {
+  tags {
     Name = "mybuiderbook-alb"
   }
 }
@@ -114,7 +109,7 @@ resource "aws_alb" "mybuilderbook-alb" {
 
 resource "aws_alb_target_group" "group" {
   name     = "mybuilderbook-alb-target"
-  port     = 3000
+  port     = 80
   protocol = "HTTP"
   vpc_id   = aws_vpc.mybuilderbook-vpc.id
   stickiness {
@@ -123,7 +118,7 @@ resource "aws_alb_target_group" "group" {
   # setup the health check.
   health_check {
     path = "/"
-    port = 3000
+    port = 80
   }
 }
 
@@ -150,19 +145,13 @@ resource "aws_alb_listener" "mybuilderbook_listener_https" {
   }
 }
 
-data "aws_route53_zone" "mybuilderbook_zone" {
-  name = "${var.route53_hosted_zone_name}"
-}
-
-
-
 resource "aws_route53_record" "mybuilderbook-A-record" {
-  zone_id = "${data.aws_route53_zone.mybuilderbook_zone.zone_id}"
+  zone_id = "${data.aws_route53_zone.zone.zone_id}"
   name    = "${var.route53_hosted_zone_name}"
   type    = "A"
   alias {
-    name                   = "${aws_alb.mybuilderbook-alb.dns_name}"
-    zone_id                = "${aws_alb.mybuilderbook-alb.zone_id}"
+    name                   = "${aws_alb.alb.dns_name}"
+    zone_id                = "${aws_alb.alb.zone_id}"
     evaluate_target_health = true
   }
 }
@@ -182,13 +171,13 @@ data "aws_ami" "latest-amazon-linux-image" {
 }
 
 
-output "aws_ami_id" {
+output "aws_zmi_id" {
     value  = data.aws_ami.latest-amazon-linux-image.id
 }
 
 
 output "ec2_public_ip" {
-    value = aws_instance.mybuilderbook_server.public_ip
+    value = aws_instance.mybuilerbook-server.public_ip
 }
 
 resource "aws_key_pair" "ssh-key" {
@@ -196,16 +185,16 @@ resource "aws_key_pair" "ssh-key" {
     public_key = "${file(var.public_key_location)}"
 }
 
-resource "aws_instance" "mybuilderbook_server" {
+resource "aws_instance" "mybuilderbook-server" {
     ami =  data.aws_ami.latest-amazon-linux-image.id
-    instance_type = var.instance_type
+    instacne_type = var.instance_type
 
     subnet_id = aws_subnet.mybuilderbook-subnet-1.id
-    vpc_security_group_ids = aws_security_group.mybuilderbook-sg.id
-    availability_zone  = var.avail_zone
+    vpc_secuirty_group_ids = aws_security_group.mybuilderbook-sg.id
+    availbility_zone  = var.avail_zone
 
     associate_public_ip_address = true
-    key_name = aws_key_pair.ssh-key.key_name
+    key_name = aws_key_pair.ssh-key.key-name
 
     user_data = file("setup-builderbook.sh")
 }
